@@ -43,7 +43,7 @@ impl TileTypeIndex {
                 panic!("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠛⠛⠛⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠉⠻⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⠋⠈⠀⠀⠀⠀⠐⠺⣖⢄⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡏⢀⡆⠀⠀⠀⢋⣭⣽⡚⢮⣲⠆⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡇⡼⠀⠀⠀⠀⠈⠻⣅⣨⠇⠈⠀⠰⣀⣀⣀⡀⠀⢸⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡇⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣟⢷⣶⠶⣃⢀⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡅⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⠀⠈⠓⠚⢸⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⢀⡠⠀⡄⣀⠀⠀⠀⢻⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠐⠉⠀⠀⠙⠉⠀⠠⡶⣸⠁⠀⣠⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣦⡆⠀⠐⠒⠢⢤⣀⡰⠁⠇⠈⠘⢶⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠠⣄⣉⣙⡉⠓⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣤⣀⣀⠀⣀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n");   //compatablity = [true;4];
             },
             TileTypeIndex::Blank => {
-                connections = [true; 4];
+                connections = [false; 4];
             },
             TileTypeIndex::HLine => {
                 connections = [true, false, true, false];
@@ -120,22 +120,76 @@ impl Default for MetaData {//fully done by copilot(including this comment)
     }
 }
 
-fn reduce_grid(grid: &mut [[MetaData;DIM];DIM])  {//poorly optimised, can rework if speed is an issue
+// fn compatiblity(possiblity: TileTypeIndex, pos: (usize,usize)) -> bool{
+//     let left_tile = match i {
+//         0 => true,
+//         _ =>{
+//             if let Some(tile_type) = grid[i-1][j].collapsed_into {
+//                 grid[i][j].collapsed_into.unwrap().is_compatible_with(tile_type, Side::Right)
+//             } else { true }
+//             //if this has not collapsed, then obviously it's compatible
+//         }
+//     };
+// }
+
+fn reduce_grid(grid: &mut [[MetaData;DIM];DIM]) {//poorly optimised, can rework if speed is an issue
+    const MAX_INDEX: usize= DIM-1;
     for j in 0..DIM {
         for i in 0..DIM {//iterate over 2d grid
             if grid[i][j].collapsed_into.is_none(){//is the element has not yet collapsed, perform reduction
-                for possibility in grid[i][j].possibilities.iter() {
-
+                let mut impossible_indexes: Vec<usize> = Vec::new();
+                for (index,possibility) in grid[i][j].possibilities.iter().enumerate() {
                     let left_tile = match i {
                         0 => true,
                         _ =>{
                             if let Some(tile_type) = grid[i-1][j].collapsed_into {
-                                grid[i][j].collapsed_into.unwrap().is_compatible_with(tile_type, Side::Right)
+                                possibility.is_compatible_with(tile_type, Side::Left)
                             } else { true }
                             //if this has not collapsed, then obviously it's compatible
                         }
                     };
+
+                    //this was 70% done by copilot(including this comment)
+                    let right_tile = match i {
+                        MAX_INDEX=> true,
+                        _ =>{
+                            if let Some(tile_type) = grid[i+1][j].collapsed_into {
+                                possibility.is_compatible_with(tile_type, Side::Right)
+                            } else { true }
+                            //if this has not collapsed, then obviously it's compatible
+                        }
+                    };
+
+                    //these next two were 100% done by copilot(including this comment)
+                    let top_tile = match j  {
+                        0 => true,
+                        _ =>{
+                            if let Some(tile_type) = grid[i][j-1].collapsed_into {
+                                possibility.is_compatible_with(tile_type, Side::Top)
+                            } else { true }
+                            //if this has not collapsed, then obviously it's compatible
+                        }
+                    };
+
+                    let bottom_tile = match j {
+                        MAX_INDEX => true,
+                        _ =>{
+                            if let Some(tile_type) = grid[i][j+1].collapsed_into {
+                                possibility.is_compatible_with(tile_type, Side::Bottom)
+                            } else { true }
+                            //if this has not collapsed, then obviously it's compatible
+                        }
+                    };
+                    if !left_tile || !right_tile || !top_tile || !bottom_tile {
+                        impossible_indexes.push(index);
+                    }
                 }
+                for imp_index in impossible_indexes.iter().rev() {//this was suggested by chatgpt, i would have never thought of this
+                    grid[i][j].possibilities.remove(*imp_index);
+                }
+            }
+            if let Some(collapsed_type) = grid[i][j].collapsed_into{
+                grid[i][j].possibilities = vec![collapsed_type];
             }
         }
     }
@@ -160,12 +214,20 @@ async fn main() {
     ];
 
     let mut grid : [[MetaData;DIM];DIM] = Default::default();
-    let texture: Texture2D = load_texture("sprites/none.png").await.unwrap();
-    let mut slider_num = 0.0;
+    // let texture: Texture2D = load_texture("sprites/none.png").await.unwrap();
+    // let mut slider_num = 0.0;
+
+    let stringlist:Vec<String> = (1..TileTypeIndex::COUNT).map(|i|
+        format!("{:?}",TileTypeIndex::from_repr(i).unwrap())
+    ).collect();
+    let stringlist:Vec<&str> = stringlist.iter().map(|i| i.as_str()).collect();
+    let stringlist:[&str;TileTypeIndex::COUNT-1] = stringlist.try_into().unwrap();
 
     // trial space
     //println!("{:?}", .compatablity());
-
+    let mut text1:String ="<your selection>".to_string();
+    let mut clicked_tile = (0_usize,0_usize);
+    let mut choice: usize = 0;
     // end trial space
 
     loop {
@@ -192,10 +254,36 @@ async fn main() {
             }
         }
 
-        //let _ = get_compatablity(TileIndex::None);
+        if is_mouse_button_pressed(MouseButton::Left) {
+            let mouse_pos = mouse_position();
+            let mouse_pos = (mouse_pos.0 as usize / SIZE as usize, mouse_pos.1 as usize / SIZE as usize);
+            //till here it's all copilot
+            if mouse_pos.0 < DIM && mouse_pos.1 < DIM {
+                text1 = format!("{:?}" , mouse_pos).to_string();
+                clicked_tile = mouse_pos;
+            }
+
+        }
+
         widgets::Window::new(hash!(),vec2(400.,200.), vec2(320.,400.))
             .ui(&mut *root_ui(), |ui| {
-                    ui.slider(hash!(), "slider", 0.00..5.00, &mut slider_num);
+                    //ui.slider(hash!(), "slider", 0.00..5.00, &mut slider_num);
+                    ui.label(None, text1.as_str());
+
+                    ui.button(None, "collapse").then(||{
+                        grid[clicked_tile.0][clicked_tile.1].collapsed_into = Some(TileTypeIndex::from_repr(choice as usize + 1).unwrap());
+                    });
+                    ui.button(None, "reduce").then(||{
+                        reduce_grid(&mut grid);
+                    });
+                    ui.combo_box(hash!(), "Tile Type", &stringlist, &mut choice);
+                    ui.label(None, format!("choice: {}", choice).as_str());
+                    ui.label(None, "Possiblities:");
+                    for i in grid[clicked_tile.0][clicked_tile.1].possibilities.iter() {
+                        ui.label(None, format!("{:?}", i).as_str());
+                    }
+                    
+
             });
 
         next_frame().await
