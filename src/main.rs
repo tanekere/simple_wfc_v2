@@ -1,4 +1,3 @@
-use std::backtrace::BacktraceStatus::Disabled;
 //use macroquad::miniquad::CursorIcon::Default as DefaultCursor;
 use macroquad::prelude::*;
 use macroquad::ui::{
@@ -120,17 +119,6 @@ impl Default for MetaData {//fully done by copilot(including this comment)
     }
 }
 
-// fn compatiblity(possiblity: TileTypeIndex, pos: (usize,usize)) -> bool{
-//     let left_tile = match i {
-//         0 => true,
-//         _ =>{
-//             if let Some(tile_type) = grid[i-1][j].collapsed_into {
-//                 grid[i][j].collapsed_into.unwrap().is_compatible_with(tile_type, Side::Right)
-//             } else { true }
-//             //if this has not collapsed, then obviously it's compatible
-//         }
-//     };
-// }
 
 fn reduce_grid(grid: &mut [[MetaData;DIM];DIM]) {//poorly optimised, can rework if speed is an issue
     const MAX_INDEX: usize= DIM-1;
@@ -188,8 +176,8 @@ fn reduce_grid(grid: &mut [[MetaData;DIM];DIM]) {//poorly optimised, can rework 
                     grid[i][j].possibilities.remove(*imp_index);
                 }
             }
-            if let Some(collapsed_type) = grid[i][j].collapsed_into{
-                grid[i][j].possibilities = vec![collapsed_type];
+            if let Some(_collapsed_type) = grid[i][j].collapsed_into{
+                grid[i][j].possibilities = Vec::new();
             }
         }
     }
@@ -214,8 +202,6 @@ async fn main() {
     ];
 
     let mut grid : [[MetaData;DIM];DIM] = Default::default();
-    // let texture: Texture2D = load_texture("sprites/none.png").await.unwrap();
-    // let mut slider_num = 0.0;
 
     let stringlist:Vec<String> = (1..TileTypeIndex::COUNT).map(|i|
         format!("{:?}",TileTypeIndex::from_repr(i).unwrap())
@@ -233,14 +219,6 @@ async fn main() {
     loop {
         clear_background(WHITE);
         // trial space
-        // draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
-        // draw_line(40.0, 40.0, 100.0, 200.0, 15.0, BLUE);
-        // draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
-        // draw_circle(screen_width() - 30.0, screen_height() - 30.0, 15.0, YELLOW);
-        // draw_texture_ex(&texture, 0., 0., WHITE, DrawTextureParams {
-        //     dest_size: Some(vec2(100., &slider_num*100.)),
-        //     ..Default::default()
-        // });
 
         // end trial space
 
@@ -257,7 +235,6 @@ async fn main() {
         if is_mouse_button_pressed(MouseButton::Left) {
             let mouse_pos = mouse_position();
             let mouse_pos = (mouse_pos.0 as usize / SIZE as usize, mouse_pos.1 as usize / SIZE as usize);
-            //till here it's all copilot
             if mouse_pos.0 < DIM && mouse_pos.1 < DIM {
                 text1 = format!("{:?}" , mouse_pos).to_string();
                 clicked_tile = mouse_pos;
@@ -267,7 +244,6 @@ async fn main() {
 
         widgets::Window::new(hash!(),vec2(400.,200.), vec2(320.,400.))
             .ui(&mut *root_ui(), |ui| {
-                    //ui.slider(hash!(), "slider", 0.00..5.00, &mut slider_num);
                     ui.label(None, text1.as_str());
 
                     ui.button(None, "collapse").then(||{
@@ -282,8 +258,6 @@ async fn main() {
                     for i in grid[clicked_tile.0][clicked_tile.1].possibilities.iter() {
                         ui.label(None, format!("{:?}", i).as_str());
                     }
-                    
-
             });
 
         next_frame().await
