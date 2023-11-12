@@ -8,13 +8,14 @@ use macroquad::ui::{
 use strum::{EnumCount, IntoEnumIterator,};
 use strum_macros::{EnumCount , EnumIter, FromRepr};
 use core::default::Default;
+use macroquad::rand::gen_range;
 
 // #[macro_use]
 // extern crate num_derive;
 
 
 const SIZE:f32 = 100.0;
-const DIM:usize = 4; //Dimension of the grid
+const DIM:usize = 8; //Dimension of the grid
 
 #[derive(Debug,Default,Clone,Copy,Hash,EnumCount,EnumIter,FromRepr)]
 enum TileTypeIndex {
@@ -45,10 +46,10 @@ impl TileTypeIndex {
                 connections = [false; 4];
             },
             TileTypeIndex::HLine => {
-                connections = [true, false, true, false];
+                connections = [false, true, false, true];
             },
             TileTypeIndex::VLine => {
-                connections = [false, true, false, true];
+                connections = [true, false, true, false];
             },
             TileTypeIndex::LBL => {
                 connections = [false, false, true, true];
@@ -118,6 +119,11 @@ impl Default for MetaData {//fully done by copilot(including this comment)
         }
     }
 }
+impl MetaData{
+    fn entropy(&self) -> usize {
+        self.possibilities.len()
+    }
+}
 
 
 fn reduce_grid(grid: &mut [[MetaData;DIM];DIM]) {//poorly optimised, can rework if speed is an issue
@@ -183,6 +189,22 @@ fn reduce_grid(grid: &mut [[MetaData;DIM];DIM]) {//poorly optimised, can rework 
     }
 }
 
+
+fn getSortedEntropes (grid: &[[MetaData;DIM];DIM]) -> Vec<(usize,(usize,usize))> {
+
+    let mut entropyies = Vec::new();
+    for j in 0..DIM{
+        for i in 0..DIM{
+            if grid[i][j].collapsed_into.is_none(){
+                entropyies.push((grid[i][j].entropy(),(i,j)));
+            }
+        }
+    }
+    //reverse sort because a and be are flipper in the cmp function
+    entropyies.sort_unstable_by(|a,b| b.0.cmp(&a.0));
+    return entropyies
+}
+
 //noinspection ALL
 #[macroquad::main("Title")]
 async fn main() {
@@ -201,7 +223,7 @@ async fn main() {
         load_texture("sprites/T-left.png").await.unwrap(),
     ];
 
-    let mut grid : [[MetaData;DIM];DIM] = Default::default();
+    let mut grid :[[MetaData;DIM];DIM]  = Default::default();
 
     let stringlist:Vec<String> = (1..TileTypeIndex::COUNT).map(|i|
         format!("{:?}",TileTypeIndex::from_repr(i).unwrap())
@@ -252,8 +274,16 @@ async fn main() {
                     ui.button(None, "reduce").then(||{
                         reduce_grid(&mut grid);
                     });
+                    ui.button(None,"collapse random").then(||{
+                        //debug!("{:?}", getSortedEntropes(&grid).pop());
+                        reduce_grid(&mut grid);
+                        let to_collapse = getSortedEntropes(&grid).pop().unwrap();
+                        grid[to_collapse.1.0][to_collapse.1.1].collapsed_into = Some( grid[to_collapse.1.0][to_collapse.1.1].possibilities[(rand::rand() as usize) % to_collapse.0] );
+
+                        println!("{:?},{:?},{:?}",(rand::rand() as usize) % to_collapse.0 , to_collapse, grid[to_collapse.1.0][to_collapse.1.1]);
+                    });
                     ui.combo_box(hash!(), "Tile Type", &stringlist, &mut choice);
-                    ui.label(None, format!("choice: {}", choice).as_str());
+                    ui.label(None, format!("choice: {}, entropy: {}", choice,grid[clicked_tile.0][clicked_tile.1].entropy()).as_str());
                     ui.label(None, "Possiblities:");
                     for i in grid[clicked_tile.0][clicked_tile.1].possibilities.iter() {
                         ui.label(None, format!("{:?}", i).as_str());
