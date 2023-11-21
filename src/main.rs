@@ -8,7 +8,7 @@ use macroquad::ui::{
 use strum::{EnumCount, IntoEnumIterator,};
 use strum_macros::{EnumCount , EnumIter, FromRepr};
 use core::default::Default;
-use macroquad::rand::gen_range;
+// use macroquad::rand::gen_range;
 
 // #[macro_use]
 // extern crate num_derive;
@@ -17,7 +17,7 @@ use macroquad::rand::gen_range;
 const SIZE:f32 = 100.0;
 const DIM:usize = 8; //Dimension of the grid
 
-#[derive(Debug,Default,Clone,Copy,Hash,EnumCount,EnumIter,FromRepr)]
+#[derive(Debug,Default,Clone,Copy,Hash,EnumCount,EnumIter,FromRepr,PartialEq)]
 enum TileTypeIndex {
     #[default]
     None = 0,
@@ -264,30 +264,43 @@ async fn main() {
 
         }
 
-        widgets::Window::new(hash!(),vec2(400.,200.), vec2(320.,400.))
+        widgets::Window::new(hash!(),vec2(800.,200.), vec2(320.,500.))
             .ui(&mut *root_ui(), |ui| {
-                    ui.label(None, text1.as_str());
+                ui.label(None,"Current Selection");
+                ui.label(None, text1.as_str());
 
-                    ui.button(None, "collapse").then(||{
+                ui.button(None, "turn Turn Selected into:").then(||{
+                    reduce_grid(&mut grid);
+                    if grid[clicked_tile.0][clicked_tile.1].possibilities.contains(&TileTypeIndex::from_repr(choice as usize + 1).unwrap()) {
                         grid[clicked_tile.0][clicked_tile.1].collapsed_into = Some(TileTypeIndex::from_repr(choice as usize + 1).unwrap());
-                    });
-                    ui.button(None, "reduce").then(||{
-                        reduce_grid(&mut grid);
-                    });
-                    ui.button(None,"collapse random").then(||{
-                        //debug!("{:?}", getSortedEntropes(&grid).pop());
-                        reduce_grid(&mut grid);
-                        let to_collapse = getSortedEntropes(&grid).pop().unwrap();
-                        grid[to_collapse.1.0][to_collapse.1.1].collapsed_into = Some( grid[to_collapse.1.0][to_collapse.1.1].possibilities[(rand::rand() as usize) % to_collapse.0] );
+                    } 
+                    reduce_grid(&mut grid);
+                });
+                // ui.button(None, "reduce").then(||{
+                //     reduce_grid(&mut grid);
+                // });
+                
+                ui.combo_box(hash!(), "(Tile Type)", &stringlist, &mut choice);
 
-                        println!("{:?},{:?},{:?}",(rand::rand() as usize) % to_collapse.0 , to_collapse, grid[to_collapse.1.0][to_collapse.1.1]);
-                    });
-                    ui.combo_box(hash!(), "Tile Type", &stringlist, &mut choice);
-                    ui.label(None, format!("choice: {}, entropy: {}", choice,grid[clicked_tile.0][clicked_tile.1].entropy()).as_str());
-                    ui.label(None, "Possiblities:");
-                    for i in grid[clicked_tile.0][clicked_tile.1].possibilities.iter() {
-                        ui.label(None, format!("{:?}", i).as_str());
+                ui.button(None,"collapse random").then(||{
+                    //debug!("{:?}", getSortedEntropes(&grid).pop());
+                    reduce_grid(&mut grid);
+                    let to_collapse = getSortedEntropes(&grid).pop();
+                    if let Some(to_collapse) = to_collapse {
+                        grid[to_collapse.1.0][to_collapse.1.1].collapsed_into = Some( grid[to_collapse.1.0][to_collapse.1.1].possibilities[(rand::rand() as usize) % to_collapse.0] );
                     }
+                    //grid[to_collapse.1.0][to_collapse.1.1].collapsed_into = Some( grid[to_collapse.1.0][to_collapse.1.1].possibilities[(rand::rand() as usize) % to_collapse.0] );
+
+                    // println!("{:?},{:?},{:?}",(rand::rand() as usize) % to_collapse.0 , to_collapse, grid[to_collapse.1.0][to_collapse.1.1]);
+                    reduce_grid(&mut grid);
+
+                });
+
+                ui.label(None, format!("choice: {}, entropy: {}", choice,grid[clicked_tile.0][clicked_tile.1].entropy()).as_str());
+                ui.label(None, "Possiblities:");
+                for i in grid[clicked_tile.0][clicked_tile.1].possibilities.iter() {
+                    ui.label(None, format!("{:?}", i).as_str());
+                }
             });
 
         next_frame().await

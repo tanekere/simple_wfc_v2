@@ -12,3 +12,4 @@ strum_macros = "0.25"
 num-traits = "0.2"
 num-derive = "0.4"
 rand = "0.8.5"
+getrandom = { version = "0.2", features = ["js"] }
